@@ -1,4 +1,3 @@
-// src/components/HomeDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from "../assets/Logo.png";
@@ -660,7 +659,7 @@ const HomeDashboard = () => {
               </div>
             </div>
             
-            {/* Navigation */}
+            
             <nav className="main-nav">
               {navigationItems.map((item) => (
                 <button

@@ -8,7 +8,7 @@ router.post('/submit', auth, async (req, res) => {
   try {
     const { rating, message, category } = req.body;
 
-    // Validation
+    
     if (!rating || !message) {
       return res.status(400).json({ message: 'Rating and message are required' });
     }

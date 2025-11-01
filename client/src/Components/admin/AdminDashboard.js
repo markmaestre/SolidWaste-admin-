@@ -3,25 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import API_URL from '../Utils/Api';
 import UsersManagement from '../admin/UsersManagement';
 import FeedbackManagement from '../admin/FeedbackManagement';
+import AdminProfiles from './AdminProfiles';
 import '../css/Admin.css';
 
 const AdminDashboard = () => {
   const [admin, setAdmin] = useState(null);
   const [activeSection, setActiveSection] = useState('dashboard');
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [profileForm, setProfileForm] = useState({
-    email: '',
-    password: '',
-    profile: null,
-    username: '',
-    gender: '',
-    bod: '',
-    address: ''
-  });
-  const [message, setMessage] = useState('');
+  const [userStats, setUserStats] = useState(null);
+  const [feedbackStats, setFeedbackStats] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,15 +28,9 @@ const AdminDashboard = () => {
     try {
       const parsedAdmin = JSON.parse(adminData);
       setAdmin(parsedAdmin);
-      setProfileForm(prev => ({ 
-        ...prev, 
-        email: parsedAdmin.email,
-        username: parsedAdmin.username || '',
-        gender: parsedAdmin.gender || '',
-        bod: parsedAdmin.bod || '',
-        address: parsedAdmin.address || ''
-      }));
       fetchAdminStats();
+      fetchUserStatistics();
+      fetchFeedbackStatistics();
     } catch (error) {
       console.error('Error parsing admin data:', error);
       navigate('/Login');
@@ -55,31 +41,36 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('adminToken');
       
-      // Fetch feedback stats
-      const statsResponse = await fetch(`${API_URL}/api/feedback/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      // Fetch feedback stats using the same endpoint as FeedbackManagement
+      const [statsResponse, usersResponse] = await Promise.all([
+        fetch(`${API_URL}/api/feedback/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_URL}/api/users/all-users`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+      ]);
+
+      let statsData = {};
+      let totalUsers = 0;
 
       if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
+        statsData = await statsResponse.json();
       }
 
-      // Fetch users count
-      const usersResponse = await fetch(`${API_URL}/api/users/all-users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      let totalUsers = 0;
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
         totalUsers = usersData.length;
-        setStats(prev => ({ ...prev, totalUsers }));
       }
+
+      setStats({
+        ...statsData,
+        totalUsers
+      });
 
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -88,87 +79,459 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchUserStatistics = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      // Fetch all users to calculate statistics
+      const usersResponse = await fetch(`${API_URL}/api/users/all-users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json();
+        
+        // Calculate statistics from user data
+        const activeUsers = usersData.filter(user => user.status === 'active').length;
+        const newUsersThisMonth = usersData.filter(user => {
+          const userDate = new Date(user.createdAt);
+          const now = new Date();
+          return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
+        }).length;
+
+        // Calculate gender distribution if available
+        const genderCounts = {};
+        usersData.forEach(user => {
+          const gender = user.gender || 'not_specified';
+          genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+        });
+
+        // Convert to percentages
+        const usersByGender = {};
+        Object.keys(genderCounts).forEach(gender => {
+          usersByGender[gender] = Math.round((genderCounts[gender] / usersData.length) * 100);
+        });
+
+        const basicStats = {
+          totalUsers: usersData.length,
+          activeUsers,
+          newUsersThisMonth,
+          usersByGender,
+          userGrowth: Math.round((newUsersThisMonth / (usersData.length - newUsersThisMonth)) * 100) || 0
+        };
+        
+        setUserStats(basicStats);
+      }
+    } catch (error) {
+      console.error('Error fetching user statistics:', error);
+    }
+  };
+
+  const fetchFeedbackStatistics = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      
+      // Fetch all feedback to calculate statistics
+      const feedbackResponse = await fetch(`${API_URL}/api/feedback/all`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (feedbackResponse.ok) {
+        const feedbackData = await feedbackResponse.json();
+        const feedbackList = feedbackData.feedback || feedbackData;
+        
+        // Calculate rating distribution
+        const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+        const categoryCounts = {};
+        
+        feedbackList.forEach(feedback => {
+          // Count ratings
+          if (feedback.rating) {
+            ratingCounts[feedback.rating] = (ratingCounts[feedback.rating] || 0) + 1;
+          }
+          
+          // Count categories
+          const category = feedback.category || 'general';
+          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        });
+
+        // Calculate average rating
+        const totalRatings = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
+        const averageRating = totalRatings > 0 
+          ? feedbackList.reduce((sum, item) => sum + (item.rating || 0), 0) / totalRatings
+          : 0;
+
+        // Calculate status counts
+        const statusCounts = {};
+        feedbackList.forEach(feedback => {
+          const status = feedback.status || 'pending';
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+
+        // Calculate response rate (percentage with adminReply)
+        const repliedCount = feedbackList.filter(item => item.adminReply).length;
+        const responseRate = feedbackList.length > 0 
+          ? Math.round((repliedCount / feedbackList.length) * 100)
+          : 0;
+
+        const basicStats = {
+          totalFeedback: feedbackList.length,
+          averageRating,
+          ratingDistribution: ratingCounts,
+          feedbackByCategory: categoryCounts,
+          responseRate,
+          resolvedIssues: statusCounts.resolved || 0,
+          pendingIssues: statusCounts.pending || 0,
+          statusStats: Object.entries(statusCounts).map(([status, count]) => ({
+            _id: status,
+            count
+          }))
+        };
+        
+        setFeedbackStats(basicStats);
+      }
+    } catch (error) {
+      console.error('Error fetching feedback statistics:', error);
+    }
+  };
+
+  // Helper functions for charts
+  const getRatingColor = (rating) => {
+    const colors = {
+      5: '#10b981', // Green
+      4: '#22c55e', // Light Green
+      3: '#eab308', // Yellow
+      2: '#f97316', // Orange
+      1: '#ef4444'  // Red
+    };
+    return colors[rating] || '#6b7280';
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      service: '#3b82f6',
+      product: '#8b5cf6',
+      support: '#06b6d4',
+      suggestion: '#f59e0b',
+      complaint: '#ef4444',
+      general: '#6b7280'
+    };
+    return colors[category.toLowerCase()] || '#6b7280';
+  };
+
+  const getGenderColor = (gender) => {
+    const colors = {
+      male: '#3b82f6',
+      female: '#ec4899',
+      other: '#8b5cf6',
+      not_specified: '#6b7280'
+    };
+    return colors[gender.toLowerCase()] || '#6b7280';
+  };
+
+  // Chart Components
+  const RatingDistributionChart = () => {
+    const distribution = feedbackStats?.ratingDistribution || {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+    const total = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+    
+    return (
+      <div className="chart-container">
+        <h4 className="chart-title">Rating Distribution</h4>
+        <div className="rating-bars">
+          {[5, 4, 3, 2, 1].map(rating => (
+            <div key={rating} className="rating-bar-item">
+              <div className="rating-label">
+                <span className="stars">{'★'.repeat(rating)}</span>
+                <span className="rating-count">({distribution[rating] || 0})</span>
+              </div>
+              <div className="rating-bar-container">
+                <div 
+                  className="rating-bar"
+                  style={{ 
+                    width: `${total > 0 ? ((distribution[rating] || 0) / total) * 100 : 0}%`,
+                    backgroundColor: getRatingColor(rating)
+                  }}
+                ></div>
+              </div>
+              <span className="rating-percentage">
+                {total > 0 ? Math.round(((distribution[rating] || 0) / total) * 100) : 0}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const FeedbackCategoryChart = () => {
+    const categories = feedbackStats?.feedbackByCategory || {};
+    const maxCount = Math.max(...Object.values(categories), 1);
+    
+    return (
+      <div className="chart-container">
+        <h4 className="chart-title">Feedback by Category</h4>
+        <div className="category-chart">
+          {Object.entries(categories).map(([category, count]) => (
+            <div key={category} className="category-item">
+              <div className="category-info">
+                <span className="category-name">
+                  {category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </span>
+                <span className="category-count">{count}</span>
+              </div>
+              <div className="category-bar-container">
+                <div 
+                  className="category-bar"
+                  style={{ 
+                    width: `${(count / maxCount) * 90}%`,
+                    backgroundColor: getCategoryColor(category)
+                  }}
+                ></div>
+              </div>
+            </div>
+          ))}
+          {Object.keys(categories).length === 0 && (
+            <div className="no-data">No feedback data available</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const UserActivityStats = () => {
+    const userData = userStats || {};
+    
+    return (
+      <div className="stats-mini-grid">
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">{userData.totalUsers || 0}</div>
+          <div className="mini-stat-label">Total Users</div>
+        </div>
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">{userData.activeUsers || 0}</div>
+          <div className="mini-stat-label">Active Users</div>
+        </div>
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">{userData.newUsersThisMonth || 0}</div>
+          <div className="mini-stat-label">New This Month</div>
+        </div>
+      </div>
+    );
+  };
+
+  const FeedbackOverviewStats = () => {
+    const feedbackData = feedbackStats || {};
+    
+    return (
+      <div className="stats-mini-grid">
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">{feedbackData.totalFeedback || 0}</div>
+          <div className="mini-stat-label">Total Feedback</div>
+        </div>
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">
+            {feedbackData.averageRating ? feedbackData.averageRating.toFixed(1) : '0.0'}
+          </div>
+          <div className="mini-stat-label">Avg Rating</div>
+        </div>
+        <div className="mini-stat-card">
+          <div className="mini-stat-value">
+            {feedbackStats?.responseRate ? `${feedbackStats.responseRate}%` : '0%'}
+          </div>
+          <div className="mini-stat-label">Response Rate</div>
+        </div>
+      </div>
+    );
+  };
+
+  // User Demographics Chart Component
+  const UserDemographicsChart = () => {
+    const demographics = userStats?.usersByGender || {};
+    
+    return (
+      <div className="chart-container">
+        <h4 className="chart-title">User Distribution</h4>
+        <div className="demographics-chart">
+          {Object.entries(demographics).map(([key, value]) => (
+            <div key={key} className="demographic-item">
+              <div className="demographic-label">
+                <span className="category-name">
+                  {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </span>
+                <span className="category-count">{value}%</span>
+              </div>
+              <div className="demographic-bar-container">
+                <div 
+                  className="demographic-bar"
+                  style={{ 
+                    width: `${value}%`,
+                    backgroundColor: getGenderColor(key)
+                  }}
+                ></div>
+              </div>
+            </div>
+          ))}
+          {Object.keys(demographics).length === 0 && (
+            <div className="no-data">No demographic data available</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
     navigate('/admin/login');
   };
 
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage('');
+  const handleProfileUpdate = async (profileForm) => {
+    const token = localStorage.getItem('adminToken');
+    
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+
+    if (profileForm.profile) {
+      return await handleProfileUpdateWithFile(profileForm, token);
+    } else {
+      return await handleProfileUpdateWithoutFile(profileForm, token);
+    }
+  };
+
+  const handleProfileUpdateWithoutFile = async (profileForm, token) => {
+    const updateData = {};
+    
+    if (profileForm.email && profileForm.email !== admin.email) {
+      updateData.email = profileForm.email;
+    }
+    
+    if (profileForm.username && profileForm.username !== admin.username) {
+      updateData.username = profileForm.username;
+    }
+    
+    if (profileForm.gender !== admin.gender) {
+      updateData.gender = profileForm.gender;
+    }
+    
+    if (profileForm.bod !== admin.bod) {
+      updateData.bod = profileForm.bod;
+    }
+    
+    if (profileForm.address !== admin.address) {
+      updateData.address = profileForm.address;
+    }
+    
+    if (profileForm.password) {
+      updateData.password = profileForm.password;
+    }
 
     try {
-      const token = localStorage.getItem('adminToken');
-      const formData = new FormData();
+      console.log('Sending JSON update:', updateData);
       
-      // Append only changed fields
-      if (profileForm.email !== admin.email) {
-        formData.append('email', profileForm.email);
-      }
-      if (profileForm.username !== admin.username) {
-        formData.append('username', profileForm.username);
-      }
-      if (profileForm.gender !== admin.gender) {
-        formData.append('gender', profileForm.gender);
-      }
-      if (profileForm.bod !== admin.bod) {
-        formData.append('bod', profileForm.bod);
-      }
-      if (profileForm.address !== admin.address) {
-        formData.append('address', profileForm.address);
-      }
-      if (profileForm.password) {
-        formData.append('password', profileForm.password);
-      }
-      if (profileForm.profile) {
-        formData.append('profile', profileForm.profile);
-      }
-
       const response = await fetch(`${API_URL}/api/users/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify(updateData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setAdmin(data.user);
-        localStorage.setItem('adminData', JSON.stringify(data.user));
-        setMessage('Profile updated successfully!');
-        setShowEditProfile(false);
-        setProfileForm(prev => ({ 
-          ...prev, 
-          password: '', 
-          profile: null 
-        }));
+        if (data.user) {
+          setAdmin(data.user);
+          localStorage.setItem('adminData', JSON.stringify(data.user));
+          return Promise.resolve();
+        } else {
+          throw new Error('No user data returned from server');
+        }
       } else {
-        setMessage(data.message || 'Failed to update profile');
+        throw new Error(data.message || `Failed to update profile: ${response.status}`);
       }
     } catch (error) {
-      setMessage('Network error. Please try again.');
       console.error('Profile update error:', error);
-    } finally {
-      setLoading(false);
+      throw error;
     }
   };
 
-  const handleFileChange = (e) => {
-    setProfileForm({
-      ...profileForm,
-      profile: e.target.files[0]
-    });
-  };
+  const handleProfileUpdateWithFile = async (profileForm, token) => {
+    const formData = new FormData();
+    
+    console.log('File to upload:', profileForm.profile);
+    
+    const possibleFieldNames = ['profile', 'avatar', 'image', 'photo', 'file'];
+    
+    let fileUploadSuccess = false;
+    
+    for (const fieldName of possibleFieldNames) {
+      try {
+        formData.delete('profile');
+        formData.delete('avatar');
+        formData.delete('image');
+        formData.delete('photo');
+        formData.delete('file');
+        
+        formData.append(fieldName, profileForm.profile);
+        
+        if (profileForm.email && profileForm.email !== admin.email) {
+          formData.append('email', profileForm.email);
+        }
+        if (profileForm.username && profileForm.username !== admin.username) {
+          formData.append('username', profileForm.username);
+        }
+        if (profileForm.gender !== admin.gender) {
+          formData.append('gender', profileForm.gender);
+        }
+        if (profileForm.bod !== admin.bod) {
+          formData.append('bod', profileForm.bod);
+        }
+        if (profileForm.address !== admin.address) {
+          formData.append('address', profileForm.address);
+        }
+        if (profileForm.password) {
+          formData.append('password', profileForm.password);
+        }
 
-  const handleInputChange = (e) => {
-    setProfileForm({
-      ...profileForm,
-      [e.target.name]: e.target.value
-    });
+        console.log(`Trying field name: ${fieldName}`);
+        
+        const response = await fetch(`${API_URL}/api/users/profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setAdmin(data.user);
+            localStorage.setItem('adminData', JSON.stringify(data.user));
+            fileUploadSuccess = true;
+            break;
+          }
+        } else if (response.status !== 500) {
+          const data = await response.json();
+          throw new Error(data.message || `Failed to update profile: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`Field name ${fieldName} failed:`, error.message);
+      }
+    }
+
+    if (!fileUploadSuccess) {
+      console.log('File upload failed with all field names, trying without file...');
+      return await handleProfileUpdateWithoutFile(profileForm, token);
+    }
+
+    return Promise.resolve();
   };
 
   const renderActiveSection = () => {
@@ -177,10 +540,41 @@ const AdminDashboard = () => {
         return <UsersManagement />;
       case 'feedback':
         return <FeedbackManagement />;
+      case 'profile':
+        return <AdminProfiles admin={admin} onProfileUpdate={handleProfileUpdate} />;
       case 'dashboard':
       default:
         return (
           <>
+            {/* Top Bar for Dashboard */}
+            <div className="content-topbar">
+              <div className="topbar-left">
+                <div className="page-breadcrumb">
+                  <span className="breadcrumb-item">Dashboard</span>
+                  <span className="breadcrumb-separator">→</span>
+                  <span className="breadcrumb-item active">Overview</span>
+                </div>
+                <h1 className="page-title">Waste Management Dashboard</h1>
+                <p className="page-subtitle">
+                  <span className="subtitle-dot"></span>
+                  Welcome back, {admin?.username || admin?.email?.split('@')[0]}
+                </p>
+              </div>
+              <div className="topbar-right">
+                <div className="topbar-date">
+                  <div className="date-icon">📅</div>
+                  <span>
+                    {new Date().toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Statistics Section */}
             <section className="statistics-section">
               <div className="section-header">
@@ -201,7 +595,7 @@ const AdminDashboard = () => {
                   <div className="stat-footer">
                     <span className="stat-change positive">
                       <span className="change-arrow">↑</span>
-                      +12.5%
+                      +{userStats?.userGrowth || 0}%
                     </span>
                     <span className="stat-period">from last month</span>
                   </div>
@@ -220,7 +614,7 @@ const AdminDashboard = () => {
                   <div className="stat-footer">
                     <span className="stat-change positive">
                       <span className="change-arrow">↑</span>
-                      +22.5%
+                      +{Math.round((feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 1] / (feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 2] || 1) - 1) * 100) || 0}%
                     </span>
                     <span className="stat-period">from last month</span>
                   </div>
@@ -236,7 +630,7 @@ const AdminDashboard = () => {
                     <div className="stat-badge">User Satisfaction</div>
                   </div>
                   <div className="stat-value">
-                    {stats?.averageRating ? stats.averageRating.toFixed(1) : '0.0'}/5
+                    {feedbackStats?.averageRating ? feedbackStats.averageRating.toFixed(1) : '0.0'}/5
                   </div>
                   <div className="stat-footer">
                     <span className="stat-change neutral">
@@ -246,7 +640,7 @@ const AdminDashboard = () => {
                     <span className="stat-period">from last month</span>
                   </div>
                   <div className="stat-progress">
-                    <div className="progress-bar" style={{width: `${(stats?.averageRating || 0) * 20}%`}}></div>
+                    <div className="progress-bar" style={{width: `${(feedbackStats?.averageRating || 0) * 20}%`}}></div>
                   </div>
                 </article>
 
@@ -272,128 +666,80 @@ const AdminDashboard = () => {
               </div>
             </section>
 
-            {/* Admin Profile Section */}
-            <section className="profile-section">
+            {/* User Profiles & Feedback Analytics Section */}
+            <section className="analytics-section">
               <div className="section-header">
                 <div className="header-content">
-                  <h2 className="section-title">Administrator Profile</h2>
+                  <h2 className="section-title">User & Feedback Analytics</h2>
                   <div className="section-divider"></div>
                 </div>
               </div>
 
-              <div className="profile-card">
-                <div className="profile-card-decoration"></div>
-                <div className="profile-card-left">
-                  <div className="profile-avatar-wrapper">
-                    <div className="profile-avatar">
-                      {admin?.profile ? (
-                        <img src={admin.profile} alt="Admin Profile" />
-                      ) : (
-                        <div className="avatar-placeholder">
-                          {admin?.email?.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="profile-status-indicator">
-                      <span className="status-pulse"></span>
-                    </div>
+              <div className="analytics-grid">
+                {/* User Statistics */}
+                <div className="analytics-card">
+                  <div className="analytics-card-header">
+                    <h3 className="analytics-card-title">User Profiles Overview</h3>
+                    <div className="analytics-card-badge">Live Data</div>
                   </div>
-                  <div className="profile-header-info">
-                    <h3 className="profile-name">{admin?.username || admin?.email?.split('@')[0]}</h3>
-                    <p className="profile-role-badge">
-                      <span className="badge-dot"></span>
-                      {admin?.role}
-                    </p>
+                  <UserActivityStats />
+                  <div className="analytics-card-content">
+                    <UserDemographicsChart />
                   </div>
                 </div>
 
-                <div className="profile-card-right">
-                  <div className="profile-details-grid">
-                    <div className="detail-group">
-                      <label className="detail-label">
-                        <span className="label-icon">✉</span>
-                        Email Address
-                      </label>
-                      <p className="detail-value">{admin?.email}</p>
-                      <div className="detail-underline"></div>
-                    </div>
+                {/* Feedback Statistics */}
+                <div className="analytics-card">
+                  <div className="analytics-card-header">
+                    <h3 className="analytics-card-title">Feedback Analysis</h3>
+                    <div className="analytics-card-badge">Real-time</div>
+                  </div>
+                  <FeedbackOverviewStats />
+                  <div className="analytics-card-content">
+                    <RatingDistributionChart />
+                  </div>
+                </div>
 
-                    <div className="detail-group">
-                      <label className="detail-label">
-                        <span className="label-icon">👤</span>
-                        Username
-                      </label>
-                      <p className="detail-value">{admin?.username || 'Not set'}</p>
-                      <div className="detail-underline"></div>
-                    </div>
+                {/* Feedback Categories */}
+                <div className="analytics-card">
+                  <div className="analytics-card-header">
+                    <h3 className="analytics-card-title">Feedback Categories</h3>
+                    <div className="analytics-card-badge">Distribution</div>
+                  </div>
+                  <div className="analytics-card-content">
+                    <FeedbackCategoryChart />
+                  </div>
+                </div>
 
-                    <div className="detail-group">
-                      <label className="detail-label">
-                        <span className="label-icon">◆</span>
-                        Role & Permissions
-                      </label>
-                      <p className="detail-value">{admin?.role}</p>
-                      <div className="detail-underline"></div>
+                {/* Quick Stats */}
+                <div className="analytics-card">
+                  <div className="analytics-card-header">
+                    <h3 className="analytics-card-title">Quick Stats</h3>
+                    <div className="analytics-card-badge">Summary</div>
+                  </div>
+                  <div className="quick-stats-grid">
+                    <div className="quick-stat">
+                      <div className="quick-stat-value">{userStats?.activeUsers || 0}</div>
+                      <div className="quick-stat-label">Active Users</div>
                     </div>
-
-                    <div className="detail-group">
-                      <label className="detail-label">
-                        <span className="label-icon">⏰</span>
-                        Last Authentication
-                      </label>
-                      <p className="detail-value">
-                        {admin?.lastLogin ? new Date(admin.lastLogin).toLocaleString('en-US', {
-                          dateStyle: 'medium',
-                          timeStyle: 'short'
-                        }) : 'Never'}
-                      </p>
-                      <div className="detail-underline"></div>
-                    </div>
-
-                    <div className="detail-group">
-                      <label className="detail-label">
-                        <span className="label-icon">✓</span>
-                        Account Status
-                      </label>
-                      <p className="detail-value status-active">
-                        <span className="status-dot"></span>
-                        Active & Verified
-                      </p>
-                      <div className="detail-underline"></div>
-                    </div>
-
-                    {admin?.gender && (
-                      <div className="detail-group">
-                        <label className="detail-label">
-                          <span className="label-icon">⚧</span>
-                          Gender
-                        </label>
-                        <p className="detail-value">{admin.gender}</p>
-                        <div className="detail-underline"></div>
+                    <div className="quick-stat">
+                      <div className="quick-stat-value">
+                        {feedbackStats?.resolvedIssues || 0}
                       </div>
-                    )}
-
-                    {admin?.bod && (
-                      <div className="detail-group">
-                        <label className="detail-label">
-                          <span className="label-icon">🎂</span>
-                          Date of Birth
-                        </label>
-                        <p className="detail-value">{new Date(admin.bod).toLocaleDateString()}</p>
-                        <div className="detail-underline"></div>
+                      <div className="quick-stat-label">Resolved Issues</div>
+                    </div>
+                    <div className="quick-stat">
+                      <div className="quick-stat-value">
+                        {feedbackStats?.pendingIssues || 0}
                       </div>
-                    )}
-
-                    {admin?.address && (
-                      <div className="detail-group">
-                        <label className="detail-label">
-                          <span className="label-icon">🏠</span>
-                          Address
-                        </label>
-                        <p className="detail-value">{admin.address}</p>
-                        <div className="detail-underline"></div>
+                      <div className="quick-stat-label">Pending Issues</div>
+                    </div>
+                    <div className="quick-stat">
+                      <div className="quick-stat-value">
+                        {userStats?.newUsersThisMonth || 0}
                       </div>
-                    )}
+                      <div className="quick-stat-label">New Registrations</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -488,6 +834,14 @@ const AdminDashboard = () => {
                 <span className="nav-label">Feedback Management</span>
                 <span className="nav-arrow">→</span>
               </li>
+              <li 
+                className={`nav-item ${activeSection === 'profile' ? 'active' : ''}`}
+                onClick={() => setActiveSection('profile')}
+              >
+                <span className="nav-indicator"></span>
+                <span className="nav-label">Admin Profile</span>
+                <span className="nav-arrow">→</span>
+              </li>
             </ul>
           </div>
         </nav>
@@ -520,50 +874,6 @@ const AdminDashboard = () => {
 
       {/* Main Content Area */}
       <main className="dashboard-content">
-        {/* Top Bar */}
-        <div className="content-topbar">
-          <div className="topbar-left">
-            <div className="page-breadcrumb">
-              <span className="breadcrumb-item">Dashboard</span>
-              <span className="breadcrumb-separator">→</span>
-              <span className="breadcrumb-item active">
-                {activeSection === 'dashboard' && 'Overview'}
-                {activeSection === 'users' && 'Users Management'}
-                {activeSection === 'feedback' && 'Feedback Management'}
-              </span>
-            </div>
-            <h1 className="page-title">
-              {activeSection === 'dashboard' && 'Waste Management Dashboard'}
-              {activeSection === 'users' && 'Users Management'}
-              {activeSection === 'feedback' && 'Feedback Management'}
-            </h1>
-            <p className="page-subtitle">
-              <span className="subtitle-dot"></span>
-              Welcome back, {admin?.username || admin?.email?.split('@')[0]}
-            </p>
-          </div>
-          <div className="topbar-right">
-            <button 
-              className="topbar-btn edit-btn"
-              onClick={() => setShowEditProfile(true)}
-            >
-              <span>Edit Profile</span>
-              <span className="btn-icon">⚙</span>
-            </button>
-            <div className="topbar-date">
-              <div className="date-icon">📅</div>
-              <span>
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Render Active Section */}
         {renderActiveSection()}
       </main>
@@ -598,213 +908,6 @@ const AdminDashboard = () => {
                 <span className="btn-arrow">→</span>
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Profile Modal */}
-      {showEditProfile && (
-        <div className="modal-overlay" onClick={() => setShowEditProfile(false)}>
-          <div className="modal modal-form" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-decoration"></div>
-            <div className="modal-header">
-              <div className="modal-header-content">
-                <h3 className="modal-title">Edit Administrator Profile</h3>
-                <p className="modal-subtitle">Update your account information</p>
-              </div>
-              <button 
-                className="modal-close"
-                onClick={() => {
-                  setShowEditProfile(false);
-                  setMessage('');
-                  setProfileForm(prev => ({ 
-                    ...prev, 
-                    password: '', 
-                    profile: null 
-                  }));
-                }}
-              >
-                <span className="close-icon">×</span>
-              </button>
-            </div>
-
-            {message && (
-              <div className={`alert ${message.includes('successfully') ? 'alert-success' : 'alert-error'}`}>
-                <span className="alert-icon">{message.includes('successfully') ? '✓' : '✕'}</span>
-                <span className="alert-message">{message}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleProfileUpdate} className="profile-form">
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Username</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="text"
-                      name="username"
-                      className="field-input"
-                      value={profileForm.username}
-                      onChange={handleInputChange}
-                      placeholder="Enter username"
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Email Address</span>
-                    <span className="label-required">*</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="email"
-                      name="email"
-                      className="field-input"
-                      value={profileForm.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                  <span className="field-hint">Your administrative email address</span>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">New Password</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="password"
-                      name="password"
-                      className="field-input"
-                      value={profileForm.password}
-                      onChange={handleInputChange}
-                      placeholder="Leave blank to keep current password"
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                  <span className="field-hint">Minimum 8 characters recommended</span>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Gender</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <select
-                      name="gender"
-                      className="field-input"
-                      value={profileForm.gender}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Date of Birth</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="date"
-                      name="bod"
-                      className="field-input"
-                      value={profileForm.bod}
-                      onChange={handleInputChange}
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Address</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <textarea
-                      name="address"
-                      className="field-input"
-                      value={profileForm.address}
-                      onChange={handleInputChange}
-                      placeholder="Enter your address"
-                      rows="3"
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Profile Picture</span>
-                  </label>
-                  <div className="file-input-wrapper">
-                    <input
-                      type="file"
-                      id="profile-file"
-                      className="file-input"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                    />
-                    <label htmlFor="profile-file" className="file-input-label">
-                      <span className="file-input-text">
-                        {profileForm.profile ? profileForm.profile.name : 'Choose an image file'}
-                      </span>
-                      <span className="file-input-button">Browse</span>
-                    </label>
-                  </div>
-                  <span className="field-hint">Accepted formats: JPG, PNG, GIF (Max 5MB)</span>
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button 
-                  type="button"
-                  className="modal-btn btn-secondary"
-                  onClick={() => {
-                    setShowEditProfile(false);
-                    setMessage('');
-                    setProfileForm(prev => ({ 
-                      ...prev, 
-                      password: '', 
-                      profile: null 
-                    }));
-                  }}
-                >
-                  <span>Cancel</span>
-                </button>
-                <button 
-                  type="submit" 
-                  className="modal-btn btn-primary"
-                  disabled={loading}
-                >
-                  <span>{loading ? 'Updating Profile...' : 'Save Changes'}</span>
-                  {!loading && <span className="btn-arrow">→</span>}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

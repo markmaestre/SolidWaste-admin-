@@ -96,7 +96,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
             <span className="btn-icon">⚙</span>
           </button>
           <div className="topbar-date">
-            <div className="date-icon">📅</div>
+            <div className="date-icon"></div>
             <span>
               {new Date().toLocaleDateString('en-US', { 
                 weekday: 'long', 
@@ -150,7 +150,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
             <div className="profile-details-grid">
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">✉</span>
+                  <span className="label-icon"></span>
                   Email Address
                 </label>
                 <p className="detail-value">{admin?.email}</p>
@@ -159,7 +159,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
 
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">👤</span>
+                  <span className="label-icon"></span>
                   Display Name
                 </label>
                 <p className="detail-value">{admin?.email?.split('@')[0] || 'Admin'}</p>
@@ -168,7 +168,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
 
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">◆</span>
+                  <span className="label-icon"></span>
                   Role & Permissions
                 </label>
                 <p className="detail-value">{admin?.role || 'Administrator'}</p>
@@ -177,7 +177,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
 
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">⏰</span>
+                  <span className="label-icon"></span>
                   Last Authentication
                 </label>
                 <p className="detail-value">
@@ -191,7 +191,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
 
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">✓</span>
+                  <span className="label-icon"></span>
                   Account Status
                 </label>
                 <p className="detail-value status-active">
@@ -203,7 +203,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
 
               <div className="detail-group">
                 <label className="detail-label">
-                  <span className="label-icon">🆔</span>
+                  <span className="label-icon"></span>
                   Admin ID
                 </label>
                 <p className="detail-value">{admin?.id || admin?._id?.substring(0, 8) || 'N/A'}</p>
@@ -244,7 +244,7 @@ const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
                 <div className="form-field">
                   <label className="field-label">
                     <span className="label-text">Email Address</span>
-                    <span className="label-required">*</span>
+                    <span className="label-required"></span>
                   </label>
                   <div className="input-wrapper">
                     <input

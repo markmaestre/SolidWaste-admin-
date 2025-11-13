@@ -8,6 +8,97 @@ import Message from './Message';
 import WasteManagement from './WasteManagement';
 import '../css/Admin.css';
 
+// Professional Icons as React Components
+const DashboardIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+  </svg>
+);
+
+const FeedbackIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+  </svg>
+);
+
+const WasteIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const MessagesIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+  </svg>
+);
+
+const ProfileIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
+const StatUsersIcon = () => (
+  <svg className="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
+const StatFeedbackIcon = () => (
+  <svg className="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+  </svg>
+);
+
+const StatWasteIcon = () => (
+  <svg className="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const StatSystemIcon = () => (
+  <svg className="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+  </svg>
+);
+
+const ActionWasteIcon = () => (
+  <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
+const ActionMessagesIcon = () => (
+  <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+  </svg>
+);
+
+const ActionFeedbackIcon = () => (
+  <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ActionUsersIcon = () => (
+  <svg className="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+  </svg>
+);
+
 const AdminDashboard = () => {
   const [admin, setAdmin] = useState(null);
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -42,7 +133,6 @@ const AdminDashboard = () => {
     }
   }, [navigate]);
 
-  // Enhanced fetch function with better error handling
   const fetchWithAuth = async (url, options = {}) => {
     const token = localStorage.getItem('adminToken');
     
@@ -58,7 +148,6 @@ const AdminDashboard = () => {
     try {
       const response = await fetch(`${API_URL}${url}`, config);
       
-      // Check if response is HTML (error page)
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
@@ -67,13 +156,11 @@ const AdminDashboard = () => {
       }
 
       if (!response.ok) {
-        // Try to get error message from response
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          // If can't parse as JSON, use status text
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
@@ -90,7 +177,6 @@ const AdminDashboard = () => {
     try {
       setError(null);
       
-      // Fetch feedback stats and users in parallel
       const [statsResponse, usersResponse] = await Promise.allSettled([
         fetchWithAuth('/api/feedback/stats'),
         fetchWithAuth('/api/users/all-users')
@@ -130,7 +216,6 @@ const AdminDashboard = () => {
       const usersData = await fetchWithAuth('/api/users/all-users');
       
       if (Array.isArray(usersData)) {
-        // Calculate statistics from user data
         const activeUsers = usersData.filter(user => user.status === 'active').length;
         const newUsersThisMonth = usersData.filter(user => {
           const userDate = new Date(user.createdAt);
@@ -138,14 +223,12 @@ const AdminDashboard = () => {
           return userDate.getMonth() === now.getMonth() && userDate.getFullYear() === now.getFullYear();
         }).length;
 
-        // Calculate gender distribution if available
         const genderCounts = {};
         usersData.forEach(user => {
           const gender = user.gender || 'not_specified';
           genderCounts[gender] = (genderCounts[gender] || 0) + 1;
         });
 
-        // Convert to percentages
         const usersByGender = {};
         Object.keys(genderCounts).forEach(gender => {
           usersByGender[gender] = Math.round((genderCounts[gender] / usersData.length) * 100);
@@ -171,35 +254,29 @@ const AdminDashboard = () => {
       const feedbackData = await fetchWithAuth('/api/feedback/all');
       const feedbackList = feedbackData.feedback || feedbackData || [];
       
-      // Calculate rating distribution
       const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
       const categoryCounts = {};
       
       feedbackList.forEach(feedback => {
-        // Count ratings
         if (feedback.rating) {
           ratingCounts[feedback.rating] = (ratingCounts[feedback.rating] || 0) + 1;
         }
         
-        // Count categories
         const category = feedback.category || 'general';
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       });
 
-      // Calculate average rating
       const totalRatings = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
       const averageRating = totalRatings > 0 
         ? feedbackList.reduce((sum, item) => sum + (item.rating || 0), 0) / totalRatings
         : 0;
 
-      // Calculate status counts
       const statusCounts = {};
       feedbackList.forEach(feedback => {
         const status = feedback.status || 'pending';
         statusCounts[status] = (statusCounts[status] || 0) + 1;
       });
 
-      // Calculate response rate (percentage with adminReply)
       const repliedCount = feedbackList.filter(item => item.adminReply).length;
       const responseRate = feedbackList.length > 0 
         ? Math.round((repliedCount / feedbackList.length) * 100)
@@ -239,7 +316,6 @@ const AdminDashboard = () => {
         classificationBreakdown: {}
       };
 
-      // Calculate classification breakdown
       reports.forEach(report => {
         const classification = report.classification;
         wasteStats.classificationBreakdown[classification] = 
@@ -255,11 +331,11 @@ const AdminDashboard = () => {
   // Helper functions for charts
   const getRatingColor = (rating) => {
     const colors = {
-      5: '#10b981', // Green
-      4: '#22c55e', // Light Green
-      3: '#eab308', // Yellow
-      2: '#f97316', // Orange
-      1: '#ef4444'  // Red
+      5: '#10b981',
+      4: '#22c55e',
+      3: '#eab308',
+      2: '#f97316',
+      1: '#ef4444'
     };
     return colors[rating] || '#6b7280';
   };
@@ -298,7 +374,7 @@ const AdminDashboard = () => {
           {[5, 4, 3, 2, 1].map(rating => (
             <div key={rating} className="rating-bar-item">
               <div className="rating-label">
-                <span className="stars">{'★'.repeat(rating)}</span>
+                <span className="stars">{rating} Stars</span>
                 <span className="rating-count">({distribution[rating] || 0})</span>
               </div>
               <div className="rating-bar-container">
@@ -401,7 +477,6 @@ const AdminDashboard = () => {
     );
   };
 
-  // User Demographics Chart Component
   const UserDemographicsChart = () => {
     const demographics = userStats?.usersByGender || {};
     
@@ -438,6 +513,7 @@ const AdminDashboard = () => {
 
   const WasteStatsChart = () => {
     const wasteData = wasteStats || {};
+    const total = wasteData.totalReports || 1;
     
     return (
       <div className="chart-container">
@@ -449,7 +525,7 @@ const AdminDashboard = () => {
           </div>
           <div className="waste-stat-item">
             <div className="waste-stat-value">{wasteData.pending || 0}</div>
-            <div className="waste-stat-label">Pending</div>
+            <div className="waste-stat-label">Pending Review</div>
           </div>
           <div className="waste-stat-item">
             <div className="waste-stat-value">{wasteData.recycled || 0}</div>
@@ -457,9 +533,33 @@ const AdminDashboard = () => {
           </div>
           <div className="waste-stat-item">
             <div className="waste-stat-value">
-              {wasteData.totalReports ? Math.round((wasteData.recycled / wasteData.totalReports) * 100) : 0}%
+              {Math.round((wasteData.recycled / total) * 100) || 0}%
             </div>
             <div className="waste-stat-label">Recycling Rate</div>
+          </div>
+        </div>
+        
+        {/* Waste Classification Breakdown */}
+        <div className="waste-classification">
+          <h5 className="classification-title">Waste Classification</h5>
+          <div className="classification-list">
+            {Object.entries(wasteData.classificationBreakdown || {}).map(([type, count]) => (
+              <div key={type} className="classification-item">
+                <span className="classification-name">
+                  {type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                </span>
+                <span className="classification-count">{count}</span>
+                <div className="classification-bar-container">
+                  <div 
+                    className="classification-bar"
+                    style={{ 
+                      width: `${(count / total) * 100}%`,
+                      backgroundColor: '#10b981'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -484,7 +584,6 @@ const AdminDashboard = () => {
       let data;
       
       if (profileForm.profile) {
-        // Handle file upload with FormData
         const formData = new FormData();
         formData.append('profile', profileForm.profile);
         
@@ -504,7 +603,6 @@ const AdminDashboard = () => {
           body: formData,
         });
       } else {
-        // Handle JSON update without file
         const updateData = {};
         
         if (profileForm.email && profileForm.email !== admin.email) {
@@ -525,7 +623,6 @@ const AdminDashboard = () => {
         });
       }
 
-      // Check if response is HTML
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('text/html')) {
         const text = await response.text();
@@ -558,7 +655,6 @@ const AdminDashboard = () => {
         method: 'DELETE'
       });
 
-      // Refresh admin data after deletion
       const adminData = await fetchWithAuth('/api/admin/profile');
       if (adminData.admin) {
         setAdmin(adminData.admin);
@@ -572,7 +668,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Add error display component
   const ErrorAlert = () => {
     if (!error) return null;
     
@@ -617,116 +712,76 @@ const AdminDashboard = () => {
             {/* Top Bar for Dashboard */}
             <div className="content-topbar">
               <div className="topbar-left">
-                <div className="page-breadcrumb">
-                  <span className="breadcrumb-item">Dashboard</span>
-                  <span className="breadcrumb-separator">→</span>
-                  <span className="breadcrumb-item active">Overview</span>
-                </div>
                 <h1 className="page-title">Waste Management Dashboard</h1>
                 <p className="page-subtitle">
-                  <span className="subtitle-dot"></span>
                   Welcome back, {admin?.email?.split('@')[0] || 'Admin'}
                 </p>
               </div>
               <div className="topbar-right">
                 <div className="topbar-date">
-                  <div className="date-icon">📅</div>
-                  <span>
-                    {new Date().toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </span>
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
                 </div>
               </div>
             </div>
 
             {/* Statistics Section */}
             <section className="statistics-section">
-              <div className="section-header">
-                <div className="header-content">
-                  <h2 className="section-title">Waste Management Statistics</h2>
-                  <div className="section-divider"></div>
-                </div>
-              </div>
-
+              <h2 className="section-title">System Overview</h2>
               <div className="stats-grid">
-                <article className="stat-card card-users">
-                  <div className="stat-card-bg"></div>
+                <article className="stat-card">
                   <div className="stat-card-header">
+                    <StatUsersIcon />
                     <span className="stat-label">Total Users</span>
-                    <div className="stat-badge">Registered</div>
                   </div>
                   <div className="stat-value">{stats?.totalUsers || 0}</div>
                   <div className="stat-footer">
                     <span className="stat-change positive">
-                      <span className="change-arrow">↑</span>
-                      +{userStats?.userGrowth || 0}%
+                      +{userStats?.userGrowth || 0}% from last month
                     </span>
-                    <span className="stat-period">from last month</span>
-                  </div>
-                  <div className="stat-progress">
-                    <div className="progress-bar" style={{width: '75%'}}></div>
                   </div>
                 </article>
 
-                <article className="stat-card card-sessions">
-                  <div className="stat-card-bg"></div>
+                <article className="stat-card">
                   <div className="stat-card-header">
+                    <StatFeedbackIcon />
                     <span className="stat-label">Total Feedback</span>
-                    <div className="stat-badge">Received</div>
                   </div>
                   <div className="stat-value">{stats?.totalFeedback || 0}</div>
                   <div className="stat-footer">
                     <span className="stat-change positive">
-                      <span className="change-arrow">↑</span>
-                      +{Math.round((feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 1] / (feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 2] || 1) - 1) * 100) || 0}%
+                      +{Math.round((feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 1] / (feedbackStats?.monthlyTrend?.[feedbackStats.monthlyTrend.length - 2] || 1) - 1) * 100) || 0}% from last month
                     </span>
-                    <span className="stat-period">from last month</span>
-                  </div>
-                  <div className="stat-progress">
-                    <div className="progress-bar" style={{width: '85%'}}></div>
                   </div>
                 </article>
 
-                <article className="stat-card card-requests">
-                  <div className="stat-card-bg"></div>
+                <article className="stat-card">
                   <div className="stat-card-header">
+                    <StatWasteIcon />
                     <span className="stat-label">Waste Reports</span>
-                    <div className="stat-badge">Processed</div>
                   </div>
                   <div className="stat-value">{wasteStats?.totalReports || 0}</div>
                   <div className="stat-footer">
                     <span className="stat-change positive">
-                      <span className="change-arrow">↑</span>
-                      +{Math.round((wasteStats?.recycled / (wasteStats?.totalReports || 1)) * 100) || 0}%
+                      {Math.round((wasteStats?.recycled / (wasteStats?.totalReports || 1)) * 100) || 0}% recycling rate
                     </span>
-                    <span className="stat-period">recycling rate</span>
-                  </div>
-                  <div className="stat-progress">
-                    <div className="progress-bar" style={{width: `${Math.round((wasteStats?.recycled / (wasteStats?.totalReports || 1)) * 100) || 0}%`}}></div>
                   </div>
                 </article>
 
-                <article className="stat-card card-status">
-                  <div className="stat-card-bg"></div>
+                <article className="stat-card">
                   <div className="stat-card-header">
+                    <StatSystemIcon />
                     <span className="stat-label">System Status</span>
-                    <div className="stat-indicator online">
-                      <span className="indicator-pulse"></span>
-                    </div>
                   </div>
                   <div className="stat-value status">Operational</div>
                   <div className="stat-footer">
                     <span className="stat-uptime">
-                      <span className="uptime-dot"></span>
                       99.9% uptime
                     </span>
-                  </div>
-                  <div className="stat-progress">
-                    <div className="progress-bar" style={{width: '99%'}}></div>
                   </div>
                 </article>
               </div>
@@ -734,16 +789,13 @@ const AdminDashboard = () => {
 
             {/* Quick Actions Section */}
             <section className="quick-actions-section">
-              <div className="section-header">
-                <h2 className="section-title">Quick Actions</h2>
-                <div className="section-divider"></div>
-              </div>
+              <h2 className="section-title">Quick Actions</h2>
               <div className="actions-grid">
                 <div 
                   className="action-card"
                   onClick={() => setActiveSection('waste')}
                 >
-                  <div className="action-icon">🗑️</div>
+                  <ActionWasteIcon />
                   <h3>Waste Reports</h3>
                   <p>Manage waste detection reports and classifications</p>
                   <div className="action-badge">{wasteStats?.pending || 0} pending</div>
@@ -752,7 +804,7 @@ const AdminDashboard = () => {
                   className="action-card"
                   onClick={() => setActiveSection('messages')}
                 >
-                  <div className="action-icon">💬</div>
+                  <ActionMessagesIcon />
                   <h3>Messages</h3>
                   <p>Communicate with users and team members</p>
                   <div className="action-badge">New messages</div>
@@ -761,7 +813,7 @@ const AdminDashboard = () => {
                   className="action-card"
                   onClick={() => setActiveSection('feedback')}
                 >
-                  <div className="action-icon">📝</div>
+                  <ActionFeedbackIcon />
                   <h3>Feedback</h3>
                   <p>Review and respond to user feedback</p>
                   <div className="action-badge">{feedbackStats?.pendingIssues || 0} pending</div>
@@ -770,7 +822,7 @@ const AdminDashboard = () => {
                   className="action-card"
                   onClick={() => setActiveSection('users')}
                 >
-                  <div className="action-icon">👥</div>
+                  <ActionUsersIcon />
                   <h3>Users</h3>
                   <p>Manage user accounts and permissions</p>
                   <div className="action-badge">{userStats?.totalUsers || 0} users</div>
@@ -778,57 +830,35 @@ const AdminDashboard = () => {
               </div>
             </section>
 
-            {/* User Profiles & Feedback Analytics Section */}
+            {/* Analytics Section */}
             <section className="analytics-section">
-              <div className="section-header">
-                <div className="header-content">
-                  <h2 className="section-title">System Analytics</h2>
-                  <div className="section-divider"></div>
-                </div>
-              </div>
-
+              <h2 className="section-title">System Analytics</h2>
               <div className="analytics-grid">
-                {/* User Statistics */}
                 <div className="analytics-card">
-                  <div className="analytics-card-header">
-                    <h3 className="analytics-card-title">User Profiles Overview</h3>
-                    <div className="analytics-card-badge">Live Data</div>
-                  </div>
+                  <h3 className="analytics-card-title">User Profiles Overview</h3>
                   <UserActivityStats />
                   <div className="analytics-card-content">
                     <UserDemographicsChart />
                   </div>
                 </div>
 
-                {/* Feedback Statistics */}
                 <div className="analytics-card">
-                  <div className="analytics-card-header">
-                    <h3 className="analytics-card-title">Feedback Analysis</h3>
-                    <div className="analytics-card-badge">Real-time</div>
-                  </div>
+                  <h3 className="analytics-card-title">Feedback Analysis</h3>
                   <FeedbackOverviewStats />
                   <div className="analytics-card-content">
                     <RatingDistributionChart />
                   </div>
                 </div>
 
-                {/* Waste Statistics */}
                 <div className="analytics-card">
-                  <div className="analytics-card-header">
-                    <h3 className="analytics-card-title">Waste Management</h3>
-                    <div className="analytics-card-badge">Reports</div>
-                  </div>
+                  <h3 className="analytics-card-title">Waste Management</h3>
                   <div className="analytics-card-content">
                     <WasteStatsChart />
                   </div>
                 </div>
 
-                {/* Feedback Categories */}
                 <div className="analytics-card">
-                  <div className="analytics-card-header">
-                    <h3 className="analytics-card-title">Feedback Categories</h3>
-                    <div className="analytics-card-badge">Distribution</div>
-                  </div>
+                  <h3 className="analytics-card-title">Feedback Categories</h3>
                   <div className="analytics-card-content">
                     <FeedbackCategoryChart />
                   </div>
@@ -843,114 +873,81 @@ const AdminDashboard = () => {
   if (!admin && loading) {
     return (
       <div className="loading-container">
-        <div className="loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
+        <div className="loading-spinner"></div>
         <p className="loading-text">Loading WasteWise System...</p>
-        <div className="loading-dots">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
       </div>
     );
   }
 
   return (
     <div className="admin-dashboard">
-      {/* Error Alert */}
       <ErrorAlert />
       
-      {/* Decorative Background Elements */}
-      <div className="background-decoration">
-        <div className="decoration-grid"></div>
-        <div className="decoration-line line-1"></div>
-        <div className="decoration-line line-2"></div>
-        <div className="decoration-line line-3"></div>
-        <div className="decoration-glow glow-1"></div>
-        <div className="decoration-glow glow-2"></div>
-      </div>
-
       {/* Sidebar Navigation */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-header">
           <div className="library-logo">
             <div className="logo-symbol">
-              <div className="symbol-inner">WW</div>
-              <div className="symbol-ring"></div>
+              <WasteIcon />
             </div>
             <div className="logo-text">
-              <h2 className="logo-title">T.M.F.K. Waste Innovations</h2>
-              <p className="logo-subtitle">Management System</p>
+              <h2>WasteWise</h2>
+              <p>Management System</p>
             </div>
           </div>
         </div>
 
         <nav className="sidebar-nav">
           <div className="nav-section">
-            <h3 className="nav-section-title">
-              <span className="section-line"></span>
-              Overview
-            </h3>
+            <h3 className="nav-section-title">Overview</h3>
             <ul className="nav-list">
               <li 
                 className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`}
                 onClick={() => setActiveSection('dashboard')}
               >
-                <span className="nav-indicator"></span>
+                <DashboardIcon />
                 <span className="nav-label">Dashboard</span>
-                <span className="nav-arrow">→</span>
               </li>
             </ul>
           </div>
 
           <div className="nav-section">
-            <h3 className="nav-section-title">
-              <span className="section-line"></span>
-              Management
-            </h3>
+            <h3 className="nav-section-title">Management</h3>
             <ul className="nav-list">
               <li 
                 className={`nav-item ${activeSection === 'users' ? 'active' : ''}`}
                 onClick={() => setActiveSection('users')}
               >
-                <span className="nav-indicator"></span>
+                <UsersIcon />
                 <span className="nav-label">Users Management</span>
-                <span className="nav-arrow">→</span>
               </li>
               <li 
                 className={`nav-item ${activeSection === 'feedback' ? 'active' : ''}`}
                 onClick={() => setActiveSection('feedback')}
               >
-                <span className="nav-indicator"></span>
+                <FeedbackIcon />
                 <span className="nav-label">Feedback Management</span>
-                <span className="nav-arrow">→</span>
               </li>
               <li 
                 className={`nav-item ${activeSection === 'waste' ? 'active' : ''}`}
                 onClick={() => setActiveSection('waste')}
               >
-                <span className="nav-indicator"></span>
+                <WasteIcon />
                 <span className="nav-label">Waste Reports</span>
-                <span className="nav-arrow">→</span>
               </li>
               <li 
                 className={`nav-item ${activeSection === 'messages' ? 'active' : ''}`}
                 onClick={() => setActiveSection('messages')}
               >
-                <span className="nav-indicator"></span>
+                <MessagesIcon />
                 <span className="nav-label">Messages</span>
-                <span className="nav-arrow">→</span>
               </li>
               <li 
                 className={`nav-item ${activeSection === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveSection('profile')}
               >
-                <span className="nav-indicator"></span>
+                <ProfileIcon />
                 <span className="nav-label">Admin Profile</span>
-                <span className="nav-arrow">→</span>
               </li>
             </ul>
           </div>
@@ -964,27 +961,24 @@ const AdminDashboard = () => {
               ) : (
                 <span className="avatar-letter">{admin?.email?.charAt(0).toUpperCase()}</span>
               )}
-              <div className="avatar-status"></div>
             </div>
             <div className="quick-details">
               <p className="quick-name">{admin?.email?.split('@')[0] || 'Admin'}</p>
-              <p className="quick-role">{admin?.role || 'Administrator'}</p>
+              <p className="quick-role">Administrator</p>
             </div>
           </div>
           <button 
             className="sidebar-logout-btn"
             onClick={() => setShowLogoutConfirm(true)}
-            title="Logout"
           >
+            <LogoutIcon />
             <span>Logout</span>
-            <span className="logout-arrow">→</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="dashboard-content">
-        {/* Render Active Section */}
         {renderActiveSection()}
       </main>
 
@@ -992,30 +986,22 @@ const AdminDashboard = () => {
       {showLogoutConfirm && (
         <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="modal modal-confirm" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-decoration"></div>
-            <div className="modal-icon-wrapper">
-              <div className="modal-icon logout-icon">
-                <span className="icon-symbol">!</span>
-                <div className="icon-ring"></div>
-              </div>
-            </div>
             <h3 className="modal-title">Confirm Logout</h3>
             <p className="modal-description">
-              Are you certain you wish to end your current session? You will need to authenticate again to access the dashboard.
+              Are you sure you want to logout? You will need to sign in again to access the dashboard.
             </p>
             <div className="modal-actions">
               <button 
                 className="modal-btn btn-secondary"
                 onClick={() => setShowLogoutConfirm(false)}
               >
-                <span>Cancel</span>
+                Cancel
               </button>
               <button 
-                className="modal-btn btn-danger"
+                className="modal-btn btn-primary"
                 onClick={handleLogout}
               >
-                <span>Yes, Logout</span>
-                <span className="btn-arrow">→</span>
+                Logout
               </button>
             </div>
           </div>

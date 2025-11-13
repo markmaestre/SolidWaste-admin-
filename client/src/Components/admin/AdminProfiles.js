@@ -1,28 +1,21 @@
 import React, { useState } from 'react';
 
-const AdminProfiles = ({ admin, onProfileUpdate }) => {
+const AdminProfiles = ({ admin, onProfileUpdate, onDeleteProfilePicture }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     email: admin?.email || '',
     password: '',
-    profile: null,
-    username: admin?.username || '',
-    gender: admin?.gender || '',
-    bod: admin?.bod || '',
-    address: admin?.address || ''
+    profile: null
   });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleEditProfile = () => {
     setProfileForm({
       email: admin?.email || '',
       password: '',
-      profile: null,
-      username: admin?.username || '',
-      gender: admin?.gender || '',
-      bod: admin?.bod || '',
-      address: admin?.address || ''
+      profile: null
     });
     setMessage('');
     setShowEditProfile(true);
@@ -65,6 +58,17 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
     setShowEditProfile(false);
     setMessage('');
     setProfileForm(prev => ({ ...prev, password: '', profile: null }));
+  };
+
+  const handleDeleteProfilePicture = async () => {
+    try {
+      await onDeleteProfilePicture();
+      setShowDeleteConfirm(false);
+      setMessage('Profile picture removed successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error.message || 'Failed to remove profile picture');
+    }
   };
 
   return (
@@ -123,12 +127,21 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
               <div className="profile-status-indicator">
                 <span className="status-pulse"></span>
               </div>
+              {admin?.profile && (
+                <button 
+                  className="remove-photo-btn"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  title="Remove profile picture"
+                >
+                  ×
+                </button>
+              )}
             </div>
             <div className="profile-header-info">
-              <h3 className="profile-name">{admin?.username || admin?.email?.split('@')[0]}</h3>
+              <h3 className="profile-name">{admin?.email?.split('@')[0] || 'Admin'}</h3>
               <p className="profile-role-badge">
                 <span className="badge-dot"></span>
-                {admin?.role}
+                {admin?.role || 'Administrator'}
               </p>
             </div>
           </div>
@@ -147,9 +160,9 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
               <div className="detail-group">
                 <label className="detail-label">
                   <span className="label-icon">👤</span>
-                  Username
+                  Display Name
                 </label>
-                <p className="detail-value">{admin?.username || 'Not set'}</p>
+                <p className="detail-value">{admin?.email?.split('@')[0] || 'Admin'}</p>
                 <div className="detail-underline"></div>
               </div>
 
@@ -158,7 +171,7 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
                   <span className="label-icon">◆</span>
                   Role & Permissions
                 </label>
-                <p className="detail-value">{admin?.role}</p>
+                <p className="detail-value">{admin?.role || 'Administrator'}</p>
                 <div className="detail-underline"></div>
               </div>
 
@@ -188,38 +201,14 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
                 <div className="detail-underline"></div>
               </div>
 
-              {admin?.gender && (
-                <div className="detail-group">
-                  <label className="detail-label">
-                    <span className="label-icon">⚧</span>
-                    Gender
-                  </label>
-                  <p className="detail-value">{admin.gender}</p>
-                  <div className="detail-underline"></div>
-                </div>
-              )}
-
-              {admin?.bod && (
-                <div className="detail-group">
-                  <label className="detail-label">
-                    <span className="label-icon">🎂</span>
-                    Date of Birth
-                  </label>
-                  <p className="detail-value">{new Date(admin.bod).toLocaleDateString()}</p>
-                  <div className="detail-underline"></div>
-                </div>
-              )}
-
-              {admin?.address && (
-                <div className="detail-group">
-                  <label className="detail-label">
-                    <span className="label-icon">🏠</span>
-                    Address
-                  </label>
-                  <p className="detail-value">{admin.address}</p>
-                  <div className="detail-underline"></div>
-                </div>
-              )}
+              <div className="detail-group">
+                <label className="detail-label">
+                  <span className="label-icon">🆔</span>
+                  Admin ID
+                </label>
+                <p className="detail-value">{admin?.id || admin?._id?.substring(0, 8) || 'N/A'}</p>
+                <div className="detail-underline"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -251,25 +240,6 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
             )}
 
             <form onSubmit={handleProfileUpdate} className="profile-form">
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Username</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="text"
-                      name="username"
-                      className="field-input"
-                      value={profileForm.username}
-                      onChange={handleInputChange}
-                      placeholder="Enter username"
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
               <div className="form-row">
                 <div className="form-field">
                   <label className="field-label">
@@ -308,65 +278,6 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
                     <div className="input-focus-border"></div>
                   </div>
                   <span className="field-hint">Minimum 8 characters recommended</span>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Gender</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <select
-                      name="gender"
-                      className="field-input"
-                      value={profileForm.gender}
-                      onChange={handleInputChange}
-                    >
-                      <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Date of Birth</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <input
-                      type="date"
-                      name="bod"
-                      className="field-input"
-                      value={profileForm.bod}
-                      onChange={handleInputChange}
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label className="field-label">
-                    <span className="label-text">Address</span>
-                  </label>
-                  <div className="input-wrapper">
-                    <textarea
-                      name="address"
-                      className="field-input"
-                      value={profileForm.address}
-                      onChange={handleInputChange}
-                      placeholder="Enter your address"
-                      rows="3"
-                    />
-                    <div className="input-focus-border"></div>
-                  </div>
                 </div>
               </div>
 
@@ -414,6 +325,54 @@ const AdminProfiles = ({ admin, onProfileUpdate }) => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Delete Profile Picture Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="modal modal-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-decoration"></div>
+            <div className="modal-icon-wrapper">
+              <div className="modal-icon delete-icon">
+                <span className="icon-symbol">🗑</span>
+                <div className="icon-ring"></div>
+              </div>
+            </div>
+            <h3 className="modal-title">Remove Profile Picture</h3>
+            <p className="modal-description">
+              Are you sure you want to remove your profile picture? This action cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button 
+                className="modal-btn btn-secondary"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                <span>Cancel</span>
+              </button>
+              <button 
+                className="modal-btn btn-danger"
+                onClick={handleDeleteProfilePicture}
+              >
+                <span>Yes, Remove</span>
+                <span className="btn-arrow">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {message && !showEditProfile && !showDeleteConfirm && (
+        <div className="alert alert-success floating-alert">
+          <span className="alert-icon">✓</span>
+          <span className="alert-message">{message}</span>
+          <button 
+            className="alert-close"
+            onClick={() => setMessage('')}
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

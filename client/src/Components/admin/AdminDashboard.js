@@ -4,6 +4,8 @@ import API_URL from '../Utils/Api';
 import UsersManagement from '../admin/UsersManagement';
 import FeedbackManagement from '../admin/FeedbackManagement';
 import AdminProfiles from './AdminProfiles';
+import Message from './Message';
+import WasteManagement from './WasteManagement';
 import '../css/Admin.css';
 
 const AdminDashboard = () => {
@@ -14,6 +16,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState(null);
   const [feedbackStats, setFeedbackStats] = useState(null);
+  const [wasteStats, setWasteStats] = useState(null);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,7 +25,7 @@ const AdminDashboard = () => {
     const adminData = localStorage.getItem('adminData');
 
     if (!token || !adminData) {
-      navigate('/Login');
+      navigate('/admin/login');
       return;
     }
 
@@ -31,40 +35,81 @@ const AdminDashboard = () => {
       fetchAdminStats();
       fetchUserStatistics();
       fetchFeedbackStatistics();
+      fetchWasteStatistics();
     } catch (error) {
       console.error('Error parsing admin data:', error);
-      navigate('/Login');
+      navigate('/admin/login');
     }
   }, [navigate]);
 
+  // Enhanced fetch function with better error handling
+  const fetchWithAuth = async (url, options = {}) => {
+    const token = localStorage.getItem('adminToken');
+    
+    const config = {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(`${API_URL}${url}`, config);
+      
+      // Check if response is HTML (error page)
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const text = await response.text();
+        console.error('HTML response received:', text.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON. Check API endpoint.');
+      }
+
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If can't parse as JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Fetch error:', error);
+      throw error;
+    }
+  };
+
   const fetchAdminStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      setError(null);
       
-      // Fetch feedback stats using the same endpoint as FeedbackManagement
-      const [statsResponse, usersResponse] = await Promise.all([
-        fetch(`${API_URL}/api/feedback/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }),
-        fetch(`${API_URL}/api/users/all-users`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
+      // Fetch feedback stats and users in parallel
+      const [statsResponse, usersResponse] = await Promise.allSettled([
+        fetchWithAuth('/api/feedback/stats'),
+        fetchWithAuth('/api/users/all-users')
       ]);
 
       let statsData = {};
       let totalUsers = 0;
 
-      if (statsResponse.ok) {
-        statsData = await statsResponse.json();
+      if (statsResponse.status === 'fulfilled') {
+        statsData = statsResponse.value;
+      } else {
+        console.warn('Failed to fetch feedback stats:', statsResponse.reason);
       }
 
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        totalUsers = usersData.length;
+      if (usersResponse.status === 'fulfilled') {
+        const usersData = usersResponse.value;
+        totalUsers = Array.isArray(usersData) ? usersData.length : 0;
+      } else {
+        console.warn('Failed to fetch users:', usersResponse.reason);
       }
 
       setStats({
@@ -74,6 +119,7 @@ const AdminDashboard = () => {
 
     } catch (error) {
       console.error('Error fetching stats:', error);
+      setError(`Failed to load statistics: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -81,18 +127,9 @@ const AdminDashboard = () => {
 
   const fetchUserStatistics = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const usersData = await fetchWithAuth('/api/users/all-users');
       
-      // Fetch all users to calculate statistics
-      const usersResponse = await fetch(`${API_URL}/api/users/all-users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        
+      if (Array.isArray(usersData)) {
         // Calculate statistics from user data
         const activeUsers = usersData.filter(user => user.status === 'active').length;
         const newUsersThisMonth = usersData.filter(user => {
@@ -131,71 +168,87 @@ const AdminDashboard = () => {
 
   const fetchFeedbackStatistics = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const feedbackData = await fetchWithAuth('/api/feedback/all');
+      const feedbackList = feedbackData.feedback || feedbackData || [];
       
-      // Fetch all feedback to calculate statistics
-      const feedbackResponse = await fetch(`${API_URL}/api/feedback/all`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      // Calculate rating distribution
+      const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
+      const categoryCounts = {};
+      
+      feedbackList.forEach(feedback => {
+        // Count ratings
+        if (feedback.rating) {
+          ratingCounts[feedback.rating] = (ratingCounts[feedback.rating] || 0) + 1;
+        }
+        
+        // Count categories
+        const category = feedback.category || 'general';
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       });
+
+      // Calculate average rating
+      const totalRatings = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
+      const averageRating = totalRatings > 0 
+        ? feedbackList.reduce((sum, item) => sum + (item.rating || 0), 0) / totalRatings
+        : 0;
+
+      // Calculate status counts
+      const statusCounts = {};
+      feedbackList.forEach(feedback => {
+        const status = feedback.status || 'pending';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+
+      // Calculate response rate (percentage with adminReply)
+      const repliedCount = feedbackList.filter(item => item.adminReply).length;
+      const responseRate = feedbackList.length > 0 
+        ? Math.round((repliedCount / feedbackList.length) * 100)
+        : 0;
+
+      const basicStats = {
+        totalFeedback: feedbackList.length,
+        averageRating,
+        ratingDistribution: ratingCounts,
+        feedbackByCategory: categoryCounts,
+        responseRate,
+        resolvedIssues: statusCounts.resolved || 0,
+        pendingIssues: statusCounts.pending || 0,
+        statusStats: Object.entries(statusCounts).map(([status, count]) => ({
+          _id: status,
+          count
+        }))
+      };
       
-      if (feedbackResponse.ok) {
-        const feedbackData = await feedbackResponse.json();
-        const feedbackList = feedbackData.feedback || feedbackData;
-        
-        // Calculate rating distribution
-        const ratingCounts = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};
-        const categoryCounts = {};
-        
-        feedbackList.forEach(feedback => {
-          // Count ratings
-          if (feedback.rating) {
-            ratingCounts[feedback.rating] = (ratingCounts[feedback.rating] || 0) + 1;
-          }
-          
-          // Count categories
-          const category = feedback.category || 'general';
-          categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-        });
-
-        // Calculate average rating
-        const totalRatings = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
-        const averageRating = totalRatings > 0 
-          ? feedbackList.reduce((sum, item) => sum + (item.rating || 0), 0) / totalRatings
-          : 0;
-
-        // Calculate status counts
-        const statusCounts = {};
-        feedbackList.forEach(feedback => {
-          const status = feedback.status || 'pending';
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
-
-        // Calculate response rate (percentage with adminReply)
-        const repliedCount = feedbackList.filter(item => item.adminReply).length;
-        const responseRate = feedbackList.length > 0 
-          ? Math.round((repliedCount / feedbackList.length) * 100)
-          : 0;
-
-        const basicStats = {
-          totalFeedback: feedbackList.length,
-          averageRating,
-          ratingDistribution: ratingCounts,
-          feedbackByCategory: categoryCounts,
-          responseRate,
-          resolvedIssues: statusCounts.resolved || 0,
-          pendingIssues: statusCounts.pending || 0,
-          statusStats: Object.entries(statusCounts).map(([status, count]) => ({
-            _id: status,
-            count
-          }))
-        };
-        
-        setFeedbackStats(basicStats);
-      }
+      setFeedbackStats(basicStats);
     } catch (error) {
       console.error('Error fetching feedback statistics:', error);
+    }
+  };
+
+  const fetchWasteStatistics = async () => {
+    try {
+      const wasteData = await fetchWithAuth('/api/waste-reports');
+      const reports = wasteData.reports || [];
+      
+      const wasteStats = {
+        totalReports: reports.length,
+        pending: reports.filter(r => r.status === 'pending').length,
+        processed: reports.filter(r => r.status === 'processed').length,
+        recycled: reports.filter(r => r.status === 'recycled').length,
+        disposed: reports.filter(r => r.status === 'disposed').length,
+        classificationBreakdown: {}
+      };
+
+      // Calculate classification breakdown
+      reports.forEach(report => {
+        const classification = report.classification;
+        wasteStats.classificationBreakdown[classification] = 
+          (wasteStats.classificationBreakdown[classification] || 0) + 1;
+      });
+
+      setWasteStats(wasteStats);
+    } catch (error) {
+      console.error('Error fetching waste statistics:', error);
     }
   };
 
@@ -383,6 +436,36 @@ const AdminDashboard = () => {
     );
   };
 
+  const WasteStatsChart = () => {
+    const wasteData = wasteStats || {};
+    
+    return (
+      <div className="chart-container">
+        <h4 className="chart-title">Waste Reports Overview</h4>
+        <div className="waste-stats-grid">
+          <div className="waste-stat-item">
+            <div className="waste-stat-value">{wasteData.totalReports || 0}</div>
+            <div className="waste-stat-label">Total Reports</div>
+          </div>
+          <div className="waste-stat-item">
+            <div className="waste-stat-value">{wasteData.pending || 0}</div>
+            <div className="waste-stat-label">Pending</div>
+          </div>
+          <div className="waste-stat-item">
+            <div className="waste-stat-value">{wasteData.recycled || 0}</div>
+            <div className="waste-stat-label">Recycled</div>
+          </div>
+          <div className="waste-stat-item">
+            <div className="waste-stat-value">
+              {wasteData.totalReports ? Math.round((wasteData.recycled / wasteData.totalReports) * 100) : 0}%
+            </div>
+            <div className="waste-stat-label">Recycling Rate</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
@@ -396,61 +479,69 @@ const AdminDashboard = () => {
       throw new Error('Authentication token not found. Please log in again.');
     }
 
-    if (profileForm.profile) {
-      return await handleProfileUpdateWithFile(profileForm, token);
-    } else {
-      return await handleProfileUpdateWithoutFile(profileForm, token);
-    }
-  };
-
-  const handleProfileUpdateWithoutFile = async (profileForm, token) => {
-    const updateData = {};
-    
-    if (profileForm.email && profileForm.email !== admin.email) {
-      updateData.email = profileForm.email;
-    }
-    
-    if (profileForm.username && profileForm.username !== admin.username) {
-      updateData.username = profileForm.username;
-    }
-    
-    if (profileForm.gender !== admin.gender) {
-      updateData.gender = profileForm.gender;
-    }
-    
-    if (profileForm.bod !== admin.bod) {
-      updateData.bod = profileForm.bod;
-    }
-    
-    if (profileForm.address !== admin.address) {
-      updateData.address = profileForm.address;
-    }
-    
-    if (profileForm.password) {
-      updateData.password = profileForm.password;
-    }
-
     try {
-      console.log('Sending JSON update:', updateData);
+      let response;
+      let data;
       
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData),
-      });
+      if (profileForm.profile) {
+        // Handle file upload with FormData
+        const formData = new FormData();
+        formData.append('profile', profileForm.profile);
+        
+        if (profileForm.email && profileForm.email !== admin.email) {
+          formData.append('email', profileForm.email);
+        }
+        
+        if (profileForm.password) {
+          formData.append('password', profileForm.password);
+        }
 
-      const data = await response.json();
+        response = await fetch(`${API_URL}/api/admin/profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else {
+        // Handle JSON update without file
+        const updateData = {};
+        
+        if (profileForm.email && profileForm.email !== admin.email) {
+          updateData.email = profileForm.email;
+        }
+        
+        if (profileForm.password) {
+          updateData.password = profileForm.password;
+        }
+
+        response = await fetch(`${API_URL}/api/admin/profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData),
+        });
+      }
+
+      // Check if response is HTML
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('text/html')) {
+        const text = await response.text();
+        console.error('HTML response received:', text.substring(0, 200));
+        throw new Error('Server error: Received HTML instead of JSON response');
+      }
+
+      data = await response.json();
 
       if (response.ok) {
-        if (data.user) {
-          setAdmin(data.user);
-          localStorage.setItem('adminData', JSON.stringify(data.user));
+        if (data.admin) {
+          setAdmin(data.admin);
+          localStorage.setItem('adminData', JSON.stringify(data.admin));
           return Promise.resolve();
         } else {
-          throw new Error('No user data returned from server');
+          throw new Error('No admin data returned from server');
         }
       } else {
         throw new Error(data.message || `Failed to update profile: ${response.status}`);
@@ -461,77 +552,44 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleProfileUpdateWithFile = async (profileForm, token) => {
-    const formData = new FormData();
-    
-    console.log('File to upload:', profileForm.profile);
-    
-    const possibleFieldNames = ['profile', 'avatar', 'image', 'photo', 'file'];
-    
-    let fileUploadSuccess = false;
-    
-    for (const fieldName of possibleFieldNames) {
-      try {
-        formData.delete('profile');
-        formData.delete('avatar');
-        formData.delete('image');
-        formData.delete('photo');
-        formData.delete('file');
-        
-        formData.append(fieldName, profileForm.profile);
-        
-        if (profileForm.email && profileForm.email !== admin.email) {
-          formData.append('email', profileForm.email);
-        }
-        if (profileForm.username && profileForm.username !== admin.username) {
-          formData.append('username', profileForm.username);
-        }
-        if (profileForm.gender !== admin.gender) {
-          formData.append('gender', profileForm.gender);
-        }
-        if (profileForm.bod !== admin.bod) {
-          formData.append('bod', profileForm.bod);
-        }
-        if (profileForm.address !== admin.address) {
-          formData.append('address', profileForm.address);
-        }
-        if (profileForm.password) {
-          formData.append('password', profileForm.password);
-        }
+  const handleDeleteProfilePicture = async () => {
+    try {
+      await fetchWithAuth('/api/admin/profile/picture', {
+        method: 'DELETE'
+      });
 
-        console.log(`Trying field name: ${fieldName}`);
-        
-        const response = await fetch(`${API_URL}/api/users/profile`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            setAdmin(data.user);
-            localStorage.setItem('adminData', JSON.stringify(data.user));
-            fileUploadSuccess = true;
-            break;
-          }
-        } else if (response.status !== 500) {
-          const data = await response.json();
-          throw new Error(data.message || `Failed to update profile: ${response.status}`);
-        }
-      } catch (error) {
-        console.log(`Field name ${fieldName} failed:`, error.message);
+      // Refresh admin data after deletion
+      const adminData = await fetchWithAuth('/api/admin/profile');
+      if (adminData.admin) {
+        setAdmin(adminData.admin);
+        localStorage.setItem('adminData', JSON.stringify(adminData.admin));
       }
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Delete profile picture error:', error);
+      throw error;
     }
+  };
 
-    if (!fileUploadSuccess) {
-      console.log('File upload failed with all field names, trying without file...');
-      return await handleProfileUpdateWithoutFile(profileForm, token);
-    }
-
-    return Promise.resolve();
+  // Add error display component
+  const ErrorAlert = () => {
+    if (!error) return null;
+    
+    return (
+      <div className="error-alert">
+        <div className="error-content">
+          <span className="error-icon">⚠️</span>
+          <span className="error-message">{error}</span>
+          <button 
+            className="error-close"
+            onClick={() => setError(null)}
+          >
+            ×
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const renderActiveSection = () => {
@@ -540,8 +598,18 @@ const AdminDashboard = () => {
         return <UsersManagement />;
       case 'feedback':
         return <FeedbackManagement />;
+      case 'waste':
+        return <WasteManagement />;
+      case 'messages':
+        return <Message />;
       case 'profile':
-        return <AdminProfiles admin={admin} onProfileUpdate={handleProfileUpdate} />;
+        return (
+          <AdminProfiles 
+            admin={admin} 
+            onProfileUpdate={handleProfileUpdate}
+            onDeleteProfilePicture={handleDeleteProfilePicture}
+          />
+        );
       case 'dashboard':
       default:
         return (
@@ -557,7 +625,7 @@ const AdminDashboard = () => {
                 <h1 className="page-title">Waste Management Dashboard</h1>
                 <p className="page-subtitle">
                   <span className="subtitle-dot"></span>
-                  Welcome back, {admin?.username || admin?.email?.split('@')[0]}
+                  Welcome back, {admin?.email?.split('@')[0] || 'Admin'}
                 </p>
               </div>
               <div className="topbar-right">
@@ -626,21 +694,19 @@ const AdminDashboard = () => {
                 <article className="stat-card card-requests">
                   <div className="stat-card-bg"></div>
                   <div className="stat-card-header">
-                    <span className="stat-label">Average Rating</span>
-                    <div className="stat-badge">User Satisfaction</div>
+                    <span className="stat-label">Waste Reports</span>
+                    <div className="stat-badge">Processed</div>
                   </div>
-                  <div className="stat-value">
-                    {feedbackStats?.averageRating ? feedbackStats.averageRating.toFixed(1) : '0.0'}/5
-                  </div>
+                  <div className="stat-value">{wasteStats?.totalReports || 0}</div>
                   <div className="stat-footer">
-                    <span className="stat-change neutral">
-                      <span className="change-arrow">→</span>
-                      +0.3
+                    <span className="stat-change positive">
+                      <span className="change-arrow">↑</span>
+                      +{Math.round((wasteStats?.recycled / (wasteStats?.totalReports || 1)) * 100) || 0}%
                     </span>
-                    <span className="stat-period">from last month</span>
+                    <span className="stat-period">recycling rate</span>
                   </div>
                   <div className="stat-progress">
-                    <div className="progress-bar" style={{width: `${(feedbackStats?.averageRating || 0) * 20}%`}}></div>
+                    <div className="progress-bar" style={{width: `${Math.round((wasteStats?.recycled / (wasteStats?.totalReports || 1)) * 100) || 0}%`}}></div>
                   </div>
                 </article>
 
@@ -666,11 +732,57 @@ const AdminDashboard = () => {
               </div>
             </section>
 
+            {/* Quick Actions Section */}
+            <section className="quick-actions-section">
+              <div className="section-header">
+                <h2 className="section-title">Quick Actions</h2>
+                <div className="section-divider"></div>
+              </div>
+              <div className="actions-grid">
+                <div 
+                  className="action-card"
+                  onClick={() => setActiveSection('waste')}
+                >
+                  <div className="action-icon">🗑️</div>
+                  <h3>Waste Reports</h3>
+                  <p>Manage waste detection reports and classifications</p>
+                  <div className="action-badge">{wasteStats?.pending || 0} pending</div>
+                </div>
+                <div 
+                  className="action-card"
+                  onClick={() => setActiveSection('messages')}
+                >
+                  <div className="action-icon">💬</div>
+                  <h3>Messages</h3>
+                  <p>Communicate with users and team members</p>
+                  <div className="action-badge">New messages</div>
+                </div>
+                <div 
+                  className="action-card"
+                  onClick={() => setActiveSection('feedback')}
+                >
+                  <div className="action-icon">📝</div>
+                  <h3>Feedback</h3>
+                  <p>Review and respond to user feedback</p>
+                  <div className="action-badge">{feedbackStats?.pendingIssues || 0} pending</div>
+                </div>
+                <div 
+                  className="action-card"
+                  onClick={() => setActiveSection('users')}
+                >
+                  <div className="action-icon">👥</div>
+                  <h3>Users</h3>
+                  <p>Manage user accounts and permissions</p>
+                  <div className="action-badge">{userStats?.totalUsers || 0} users</div>
+                </div>
+              </div>
+            </section>
+
             {/* User Profiles & Feedback Analytics Section */}
             <section className="analytics-section">
               <div className="section-header">
                 <div className="header-content">
-                  <h2 className="section-title">User & Feedback Analytics</h2>
+                  <h2 className="section-title">System Analytics</h2>
                   <div className="section-divider"></div>
                 </div>
               </div>
@@ -700,6 +812,17 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
+                {/* Waste Statistics */}
+                <div className="analytics-card">
+                  <div className="analytics-card-header">
+                    <h3 className="analytics-card-title">Waste Management</h3>
+                    <div className="analytics-card-badge">Reports</div>
+                  </div>
+                  <div className="analytics-card-content">
+                    <WasteStatsChart />
+                  </div>
+                </div>
+
                 {/* Feedback Categories */}
                 <div className="analytics-card">
                   <div className="analytics-card-header">
@@ -708,38 +831,6 @@ const AdminDashboard = () => {
                   </div>
                   <div className="analytics-card-content">
                     <FeedbackCategoryChart />
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="analytics-card">
-                  <div className="analytics-card-header">
-                    <h3 className="analytics-card-title">Quick Stats</h3>
-                    <div className="analytics-card-badge">Summary</div>
-                  </div>
-                  <div className="quick-stats-grid">
-                    <div className="quick-stat">
-                      <div className="quick-stat-value">{userStats?.activeUsers || 0}</div>
-                      <div className="quick-stat-label">Active Users</div>
-                    </div>
-                    <div className="quick-stat">
-                      <div className="quick-stat-value">
-                        {feedbackStats?.resolvedIssues || 0}
-                      </div>
-                      <div className="quick-stat-label">Resolved Issues</div>
-                    </div>
-                    <div className="quick-stat">
-                      <div className="quick-stat-value">
-                        {feedbackStats?.pendingIssues || 0}
-                      </div>
-                      <div className="quick-stat-label">Pending Issues</div>
-                    </div>
-                    <div className="quick-stat">
-                      <div className="quick-stat-value">
-                        {userStats?.newUsersThisMonth || 0}
-                      </div>
-                      <div className="quick-stat-label">New Registrations</div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -769,6 +860,9 @@ const AdminDashboard = () => {
 
   return (
     <div className="admin-dashboard">
+      {/* Error Alert */}
+      <ErrorAlert />
+      
       {/* Decorative Background Elements */}
       <div className="background-decoration">
         <div className="decoration-grid"></div>
@@ -835,6 +929,22 @@ const AdminDashboard = () => {
                 <span className="nav-arrow">→</span>
               </li>
               <li 
+                className={`nav-item ${activeSection === 'waste' ? 'active' : ''}`}
+                onClick={() => setActiveSection('waste')}
+              >
+                <span className="nav-indicator"></span>
+                <span className="nav-label">Waste Reports</span>
+                <span className="nav-arrow">→</span>
+              </li>
+              <li 
+                className={`nav-item ${activeSection === 'messages' ? 'active' : ''}`}
+                onClick={() => setActiveSection('messages')}
+              >
+                <span className="nav-indicator"></span>
+                <span className="nav-label">Messages</span>
+                <span className="nav-arrow">→</span>
+              </li>
+              <li 
                 className={`nav-item ${activeSection === 'profile' ? 'active' : ''}`}
                 onClick={() => setActiveSection('profile')}
               >
@@ -857,8 +967,8 @@ const AdminDashboard = () => {
               <div className="avatar-status"></div>
             </div>
             <div className="quick-details">
-              <p className="quick-name">{admin?.username || admin?.email?.split('@')[0]}</p>
-              <p className="quick-role">{admin?.role}</p>
+              <p className="quick-name">{admin?.email?.split('@')[0] || 'Admin'}</p>
+              <p className="quick-role">{admin?.role || 'Administrator'}</p>
             </div>
           </div>
           <button 

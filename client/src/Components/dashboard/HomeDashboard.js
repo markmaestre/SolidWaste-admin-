@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from "../assets/Logo.png";
+import logo from "../assets/T.M.F.K.png";
 import "../css/HomeDashboard.css";
 
 const HomeDashboard = () => {
@@ -654,8 +654,8 @@ const HomeDashboard = () => {
             <div className="logo-section">
               <img src={logo} alt="WasteWise Logo" className="logo-image" />
               <div className="logo-text">
-                <h1 className="logo-title">WASTEWISE</h1>
-                <p className="logo-subtitle">Smart Waste Management</p>
+                <h1 className="logo-title">T.M.F.K.</h1>
+                <p className="logo-subtitle"> Waste Innovations</p>
               </div>
             </div>
             

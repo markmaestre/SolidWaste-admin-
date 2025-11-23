@@ -891,8 +891,8 @@ const AdminDashboard = () => {
               <WasteIcon />
             </div>
             <div className="logo-text">
-              <h2>WasteWise</h2>
-              <p>Management System</p>
+              <h2>T.M.F.K</h2>
+              <p>Waste Innovations</p>
             </div>
           </div>
         </div>
